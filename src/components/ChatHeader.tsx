@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { CheckSquare, Computer, Download, Folder, HalfMoon, Settings, SunLight } from "iconoir-react";
+import { CheckSquare, Computer, Folder, HalfMoon, Settings, SunLight } from "iconoir-react";
 import { Button, Flex, Tooltip, Typography } from "antd";
 import { useTheme } from "../hooks/useTheme";
-import { useUpdater } from "../hooks/useUpdater";
 import type { ThemeMode } from "../hooks/useTheme";
 import { formatTokens } from "./bui/CacheStatsBadge";
 import CwdModal from "./CwdModal";
@@ -31,8 +30,6 @@ interface ChatHeaderProps {
   onChangeCwd?: (cwd: string) => Promise<void>;
   onOpenSettings: () => void;
   onOpenTasks: () => void;
-  /** 打开更新弹窗（badge 或按钮触发） */
-  onOpenUpdates: () => void;
 }
 
 const iconProps = {
@@ -61,10 +58,8 @@ export default function ChatHeader({
   onChangeCwd,
   onOpenSettings,
   onOpenTasks,
-  onOpenUpdates,
 }: ChatHeaderProps) {
   const { mode, cycleMode } = useTheme();
-  const { status: updaterStatus, updateInfo } = useUpdater();
   const [showCwdModal, setShowCwdModal] = useState(false);
 
   const statsNode = (() => {
@@ -145,18 +140,6 @@ export default function ChatHeader({
 
       <Flex gap={12} align="center">
         {statsNode}
-        {updaterStatus === "available" && updateInfo && (
-          <Tooltip title={`发现新版本 v${updateInfo.version}，点击查看`}>
-            <Button
-              type="primary"
-              size="small"
-              icon={<Download width={13} height={13} strokeWidth={2} aria-hidden="true" />}
-              onClick={onOpenUpdates}
-            >
-              v{updateInfo.version} 可更新
-            </Button>
-          </Tooltip>
-        )}
         <Tooltip title="任务">
           <Button
             type="text"

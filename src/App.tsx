@@ -9,7 +9,6 @@ import SessionList from "./components/SessionList";
 import Message from "./components/message";
 import ToolGroup from "./components/message/ToolGroup";
 import AskUserModal from "./components/AskUserModal";
-import UpdateModal from "./components/UpdateModal";
 import PromptBar from "./components/bui/PromptBar";
 import LoadingState from "./components/bui/LoadingState";
 import ThinkingState from "./components/bui/ThinkingState";
@@ -20,7 +19,6 @@ import { useSessions } from "./hooks/useSessions";
 import { useChat } from "./hooks/useChat";
 import { useSkills } from "./hooks/useSkills";
 import { useScrollToBottom } from "./hooks/useScrollToBottom";
-import { UpdaterProvider, useUpdater } from "./hooks/useUpdater";
 import { groupMessages, reasoningToRows } from "./utils/message";
 import { DEEPSEEK_MODEL_OPTIONS } from "./modelOptions";
 import type { ReasoningLevel } from "./types";
@@ -64,10 +62,8 @@ function AppContent() {
   const [showWizard, setShowWizard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
-  const [showUpdates, setShowUpdates] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [reasoningLevel, setReasoningLevel] = useState<ReasoningLevel>("max");
-  const updater = useUpdater();
 
   const currentSessionTitle = useMemo(() => {
     const session = sessions.find((s) => s.id === currentSessionId);
@@ -168,7 +164,6 @@ function AppContent() {
           onChangeCwd={(next) => updateSessionCwd(currentSessionId!, next)}
           onOpenSettings={() => setShowSettings(true)}
           onOpenTasks={() => setShowTasks(true)}
-          onOpenUpdates={() => setShowUpdates(true)}
         />
 
         <div
@@ -256,21 +251,12 @@ function AppContent() {
         <SettingsDrawer
           open={showSettings}
           onClose={() => setShowSettings(false)}
-          onCheckUpdates={() => {
-            setShowUpdates(true);
-            void updater.checkForUpdates();
-          }}
         />
 
         <TaskDrawer
           open={showTasks}
           onClose={() => setShowTasks(false)}
           sessionId={currentSessionId}
-        />
-
-        <UpdateModal
-          open={showUpdates}
-          onClose={() => setShowUpdates(false)}
         />
 
         <AskUserModal />
@@ -280,11 +266,7 @@ function AppContent() {
 }
 
 function App() {
-  return (
-    <UpdaterProvider>
-      <AppContent />
-    </UpdaterProvider>
-  );
+  return <AppContent />;
 }
 
 export default App;
