@@ -132,6 +132,10 @@ export default function SidebarNav({
   const [box, setBox] = useState<{ top: number; height: number } | null>(null);
   const [query, setQuery] = useState("");
   const [badge, setBadge] = useState(4);
+  /* Section folders the user has collapsed (by key). Default: all expanded. */
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    () => new Set(),
+  );
   const navRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const searchRef = useRef<HTMLInputElement>(null);
@@ -202,10 +206,42 @@ export default function SidebarNav({
     (s) => s.items.length > 0 || s.key === activeSectionKey,
   );
 
+  const toggleSection = (key: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  /* A section is only collapsed when the user collapsed it AND there is no
+     active search — searching always shows every matching session. */
+  const sectionCollapsed = (key: string) =>
+    collapsedSections.has(key) && !query.trim();
+
+  /* The folder holding the active session auto-expands so the current
+     selection is never hidden inside a collapsed group. */
+  useEffect(() => {
+    if (!activeSectionKey) return;
+    setCollapsedSections((prev) => {
+      if (!prev.has(activeSectionKey)) return prev;
+      const next = new Set(prev);
+      next.delete(activeSectionKey);
+      return next;
+    });
+  }, [activeSectionKey]);
+
   useLayoutEffect(() => {
     const container = navRef.current;
     const target = itemRefs.current[hovered ?? active];
-    if (!container || !target) return;
+    if (!container) return;
+    /* Item vanished (deleted / folder collapsed): drop the highlight instead
+       of leaving a stale box floating over the list. */
+    if (!target) {
+      setBox(null);
+      return;
+    }
 
     const containerRect = container.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
@@ -213,7 +249,7 @@ export default function SidebarNav({
       top: targetRect.top - containerRect.top,
       height: targetRect.height,
     });
-  }, [hovered, active, collapsed, query, items, sections]);
+  }, [hovered, active, collapsed, query, items, sections, collapsedSections]);
 
   /* The "/" kbd hint in the search field only makes sense if "/" actually
      focuses it — wire it up globally (but never steal focus from an input). */
@@ -471,14 +507,54 @@ export default function SidebarNav({
             </div>
           ) : (
             <div key={section.key}>
-              <div className="flex items-center justify-between px-2 pb-1 pt-1 text-[10.5px] font-medium uppercase tracking-[0.08em] text-ink-2">
+              <div className="flex items-center gap-0.5 px-1 pb-1 pt-1">
                 <button
                   type="button"
-                  onClick={section.onSelect}
-                  disabled={!section.onSelect}
-                  className={`min-w-0 truncate text-left uppercase ${section.onSelect ? "cursor-pointer hover:text-ink" : "cursor-default"}`}
+                  aria-label={
+                    sectionCollapsed(section.key)
+                      ? `展开${section.label}`
+                      : `收起${section.label}`
+                  }
+                  aria-expanded={!sectionCollapsed(section.key)}
+                  onClick={() => toggleSection(section.key)}
+                  className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-ink-3 transition-colors duration-100 hover:bg-hover-2 hover:text-ink"
                 >
-                  {section.label}
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      transform: sectionCollapsed(section.key)
+                        ? "rotate(-90deg)"
+                        : "rotate(0deg)",
+                      transition: "transform 150ms ease",
+                    }}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={
+                    section.onSelect ??
+                    (() => toggleSection(section.key))
+                  }
+                  aria-expanded={
+                    section.onSelect
+                      ? undefined
+                      : !sectionCollapsed(section.key)
+                  }
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 truncate text-left text-[10.5px] font-medium uppercase tracking-[0.08em] text-ink-2 transition-colors duration-100 hover:text-ink"
+                >
+                  <span className="truncate">{section.label}</span>
+                  <span className="shrink-0 rounded-full bg-hover px-1.5 text-[10px] font-normal leading-none tracking-normal text-ink-3 tabular-nums">
+                    {section.items.length}
+                  </span>
                 </button>
                 {section.menu && (
                   <Dropdown trigger={["click", "contextMenu"]} menu={toMenuProps(section.menu())}>
@@ -496,9 +572,11 @@ export default function SidebarNav({
                   </Dropdown>
                 )}
               </div>
-              <div className="flex flex-col gap-px">
-                {section.items.map((item) => renderRow(item))}
-              </div>
+              {!sectionCollapsed(section.key) && (
+                <div className="flex flex-col gap-px">
+                  {section.items.map((item) => renderRow(item))}
+                </div>
+              )}
             </div>
           ),
         )}
