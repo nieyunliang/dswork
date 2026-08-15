@@ -1,0 +1,15 @@
+{
+  "version": "0.1.3",
+  "notes": "",
+  "pub_date": "2026-08-15T13:38:29.271Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUT254NFhORk0wcVpRcUt3VHFNV2hGN293WXJqa2hTWmRvSkp5emU1cU5YNjMyNmZkTFVLQ1RhQlE0bGg2ZWdvZG5JUWp6UTAvZXpYRWw0TFdYUmpDOW9UZDJGRVp5QlFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2ODAxMDY1CWZpbGU6ZHN3b3JrLmFwcC50YXIuZ3oKZFVmUWNLN1loZDZKSHZsdTdkdnVsYUlLdWQ2R1FDVzZEQ0FiK1VTelhFSFhoYmFTYXBJUFltU0IyWUhOZE55a0ltYzF6WWc0RlhxUlR5STVlQ3BZQ3c9PQo=",
+      "url": "https://github.com/nieyunliang/dswork/releases/download/v0.1.3/dswork-aarch64.app.tar.gz"
+    },
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUT254NFhORk0wcVlVMENhYTV2L2FCQ3NTRms5REcycUE1dE8yTjk4K0pZTWNtQXNKMkJMMFd6b2g3YmhYYkRLR2tTQjNBSGN1enZIcGNHWndSSmllTk1BNXVEUXFVMFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2ODAxMTAzCWZpbGU6ZHN3b3JrLmFwcC50YXIuZ3oKdS9TYzhLaTJtL2piYXp0R3pBeGZNWmJuTTc5ZUtnekdVWXhCZnNUOW1mbkdMd1BjcHNvMW1VWFBTZVBaL2ZnbFM2aU9sQnlCQzgzczZpblJYc0RKQWc9PQo=",
+      "url": "https://github.com/nieyunliang/dswork/releases/download/v0.1.3/dswork-x86_64.app.tar.gz"
+    }
+  }
+}
