@@ -11,7 +11,7 @@ pnpm tauri:dev    # Start full Tauri app with hot reload
 
 # Build
 pnpm build        # TypeScript check + Vite bundle
-pnpm tauri        # Build distributable desktop app
+pnpm tauri build  # Build distributable desktop app (script `tauri` is the bare CLI)
 
 # Preview
 pnpm preview      # Preview production frontend build
