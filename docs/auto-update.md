@@ -13,6 +13,7 @@ app 启动后静默检查、每 4 小时自动复查、设置中可手动检查�
 ```bash
 # 一键发布：同步版本号 → 提交 → 推送 → 打 tag → 推送 tag（触发 CI）
 pnpm release 0.2.0        # 或 pnpm release patch | minor | major
+pnpm release              # 不带参数默认 patch（0.1.0 → 0.1.1）
 # 等价于手动执行：
 #   pnpm bump 0.2.0 && git add -A && git commit -m "release v0.2.0"
 #   git push origin main && git tag v0.2.0 && git push origin v0.2.0

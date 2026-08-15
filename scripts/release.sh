@@ -2,8 +2,9 @@
 # =============================================================================
 # dswork 一键发布脚本
 #
-# 用法:  ./scripts/release.sh <版本号|patch|minor|major>
+# 用法:  ./scripts/release.sh [版本号|patch|minor|major]
 #        pnpm release 0.2.0          （或 pnpm release patch）
+#        不带参数时默认执行 patch 发布（与 npm version 行为一致）
 #
 # 流程:  同步版本号(pnpm bump) → 提交 → 推送 main → 打 tag v<版本> → 推送 tag
 #        （推送 v* tag 触发 GitHub Actions 自动构建签名并发布 draft Release，
@@ -17,11 +18,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-VERSION="${1:-}"
-if [[ -z "$VERSION" ]]; then
-  echo "用法: $0 <版本号|patch|minor|major>" >&2
-  echo "示例: $0 0.2.0 / $0 minor" >&2
-  exit 1
+VERSION="${1:-patch}" # 不带参数默认 patch（0.1.0 -> 0.1.1）
+if [[ "$VERSION" == "help" || "$VERSION" == "-h" || "$VERSION" == "--help" ]]; then
+  echo "用法: $0 [版本号|patch|minor|major]（不带参数默认 patch）" >&2
+  echo "示例: $0 0.2.0 / $0 minor / $0（= patch）" >&2
+  exit 0
 fi
 
 # 守卫 1: 远程仓库必须已配置
