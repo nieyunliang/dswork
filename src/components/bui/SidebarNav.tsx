@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dropdown, Tooltip } from "antd";
 import type { MenuProps } from "antd";
+import deepseekLogo from "../../assets/deepseek-logo.svg";
 
 export interface MenuItem {
   key?: string;
@@ -363,16 +364,16 @@ export default function SidebarNav({
             onClick={() => onToggleCollapse?.()}
             className="mb-2 flex w-full items-center justify-center rounded-control p-1.5"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-ink text-[13px] font-semibold text-surface">
-              {workspaceTitle.charAt(0).toUpperCase()}
+            <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[8px] bg-surface shadow-hairline">
+              <img src={deepseekLogo} alt="" draggable={false} style={{ height: 18, width: "auto" }} />
             </span>
           </button>
         </Tooltip>
       ) : (
         <Tooltip title={workspaceTitle} placement="right" mouseEnterDelay={0} mouseLeaveDelay={0}>
           <div className="mb-2 flex w-full items-center gap-2.5 rounded-control p-1.5 text-left">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-ink text-[13px] font-semibold text-surface">
-              {workspaceTitle.charAt(0).toUpperCase()}
+            <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[8px] bg-surface shadow-hairline">
+              <img src={deepseekLogo} alt="" draggable={false} style={{ height: 18, width: "auto" }} />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px] font-medium leading-tight text-ink">{workspaceTitle}</span>
