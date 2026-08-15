@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# 本地 pnpm 兜底 store（沙箱/异常情况下 pnpm 会在项目内建 store）
+.pnpm-store/
+
+# 更新签名私钥（绝不入库！密钥生成于 ~/.tauri/，仅作保险）
+*.key
+*.pem
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# agentLoop 冒烟测试的编译产物
+scripts/agent-loop-smoke/out

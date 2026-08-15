@@ -1,0 +1,45 @@
+{
+  "name": "dswork",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri build",
+    "tauri:dev": "tauri dev",
+    "bump": "node scripts/bump-version.mjs"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "pnpm": {
+    "peerDependenciesMeta": {
+      "glimm": {
+        "optional": true
+      }
+    }
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
+    "ahooks": "^3.9.7",
+    "antd": "^6.6.0",
+    "glimm": "^0.3.0",
+    "iconoir-react": "^7.12.1",
+    "liveline": "^0.0.7",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.3.6"
+  }
+}

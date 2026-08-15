@@ -1,0 +1,408 @@
+{
+  "light": {
+    "viewport": 1400,
+    "bodyScrollW": 1400,
+    "demo": {
+      "card": {
+        "w": 912,
+        "h": 182
+      },
+      "pre": {
+        "clientW": 912,
+        "scrollW": 912,
+        "overflowX": "auto",
+        "h": 137
+      },
+      "bubble": null,
+      "header": {
+        "filename": "churn.tsTypeScript",
+        "lang": "TypeScript"
+      }
+    },
+    "short": {
+      "card": {
+        "w": 912,
+        "h": 85
+      },
+      "pre": {
+        "clientW": 912,
+        "scrollW": 912,
+        "overflowX": "auto",
+        "h": 40
+      },
+      "bubble": null,
+      "header": {
+        "filename": "short.tsts",
+        "lang": "ts"
+      }
+    },
+    "long": {
+      "card": {
+        "w": 912,
+        "h": 85
+      },
+      "pre": {
+        "clientW": 912,
+        "scrollW": 1487,
+        "overflowX": "auto",
+        "h": 40
+      },
+      "bubble": null,
+      "header": {
+        "filename": "long.tsts",
+        "lang": "ts"
+      }
+    },
+    "msg-ts": {
+      "card": {
+        "w": 888,
+        "h": 124
+      },
+      "pre": {
+        "clientW": 888,
+        "scrollW": 888,
+        "overflowX": "auto",
+        "h": 79
+      },
+      "bubble": null,
+      "header": {
+        "filename": "code.tsts",
+        "lang": "ts"
+      }
+    },
+    "msg-plain": {
+      "card": {
+        "w": 888,
+        "h": 104
+      },
+      "pre": {
+        "clientW": 888,
+        "scrollW": 888,
+        "overflowX": "auto",
+        "h": 59
+      },
+      "bubble": null,
+      "header": {
+        "filename": "code.txttext",
+        "lang": "text"
+      }
+    },
+    "msg-longline": {
+      "card": {
+        "w": 888,
+        "h": 104
+      },
+      "pre": {
+        "clientW": 888,
+        "scrollW": 1487,
+        "overflowX": "auto",
+        "h": 59
+      },
+      "bubble": null,
+      "header": {
+        "filename": "code.tsts",
+        "lang": "ts"
+      }
+    },
+    "msg-multi": {
+      "card": {
+        "w": 888,
+        "h": 104
+      },
+      "pre": {
+        "clientW": 888,
+        "scrollW": 888,
+        "overflowX": "auto",
+        "h": 59
+      },
+      "bubble": null,
+      "header": {
+        "filename": "code.jsonjson",
+        "lang": "json"
+      }
+    },
+    "taskrows": {
+      "card": {
+        "w": 440,
+        "h": 44
+      },
+      "pre": {
+        "clientW": 386,
+        "scrollW": 386,
+        "overflowX": "auto",
+        "h": 137
+      },
+      "bubble": null,
+      "header": {
+        "filename": "churn.tsts",
+        "lang": "ts"
+      }
+    },
+    "msg-ts-header-fit": {
+      "barClientW": 888,
+      "barScrollW": 888
+    },
+    "msg-multi-header-fit": {
+      "barClientW": 888,
+      "barScrollW": 888
+    },
+    "msg-plain-header-fit": {
+      "barClientW": 888,
+      "barScrollW": 888
+    },
+    "short-space": {
+      "preH": 40,
+      "contentBottom": 30
+    },
+    "long-chain": [
+      {
+        "tag": "PRE",
+        "overflowX": "auto",
+        "cls": "overflow-auto bg-inset px-3 py-2.5 font-mono text-"
+      },
+      {
+        "tag": "DIV",
+        "overflowX": "hidden",
+        "cls": "w-full overflow-hidden rounded-card bg-surface sha"
+      },
+      {
+        "tag": "SECTION",
+        "overflowX": "visible",
+        "cls": ""
+      },
+      {
+        "tag": "DIV",
+        "overflowX": "visible",
+        "cls": ""
+      },
+      {
+        "tag": "DIV",
+        "overflowX": "visible",
+        "cls": "css-dev-only-do-not-override-12q6fii ant-app css-v"
+      },
+      {
+        "tag": "DIV",
+        "overflowX": "visible",
+        "cls": ""
+      }
+    ],
+    "inline-code": {
+      "paddingTop": "1px",
+      "paddingBottom": "1px",
+      "bg": "rgb(247, 248, 249)"
+    },
+    "taskrows-pre": {
+      "cls": "overflow-auto bg-inset px-3 py-2.5 font-mono text-[11.5px] leading-[1.7] ",
+      "lineCount": 6,
+      "fontSize": "11.5px",
+      "lineHeight": "19.55px",
+      "paddingTop": "10px",
+      "paddingBottom": "10px",
+      "rowExpanded": "false",
+      "preRectH": 137
+    }
+  },
+  "dark": {
+    "viewport": 1400,
+    "bodyScrollW": 1400,
+    "demo": {
+      "card": {
+        "w": 912,
+        "h": 182
+      },
+      "pre": {
+        "clientW": 912,
+        "scrollW": 912,
+        "overflowX": "auto",
+        "h": 137
+      },
+      "bubble": null,
+      "header": {
+        "filename": "churn.tsTypeScript",
+        "lang": "TypeScript"
+      }
+    },
+    "short": {
+      "card": {
+        "w": 912,
+        "h": 85
+      },
+      "pre": {
+        "clientW": 912,
+        "scrollW": 912,
+        "overflowX": "auto",
+        "h": 40
+      },
+      "bubble": null,
+      "header": {
+        "filename": "short.tsts",
+        "lang": "ts"
+      }
+    },
+    "long": {
+      "card": {
+        "w": 912,
+        "h": 85
+      },
+      "pre": {
+        "clientW": 912,
+        "scrollW": 1487,
+        "overflowX": "auto",
+        "h": 40
+      },
+      "bubble": null,
+      "header": {
+        "filename": "long.tsts",
+        "lang": "ts"
+      }
+    },
+    "msg-ts": {
+      "card": {
+        "w": 888,
+        "h": 124
+      },
+      "pre": {
+        "clientW": 888,
+        "scrollW": 888,
+        "overflowX": "auto",
+        "h": 79
+      },
+      "bubble": null,
+      "header": {
+        "filename": "code.tsts",
+        "lang": "ts"
+      }
+    },
+    "msg-plain": {
+      "card": {
+        "w": 888,
+        "h": 104
+      },
+      "pre": {
+        "clientW": 888,
+        "scrollW": 888,
+        "overflowX": "auto",
+        "h": 59
+      },
+      "bubble": null,
+      "header": {
+        "filename": "code.txttext",
+        "lang": "text"
+      }
+    },
+    "msg-longline": {
+      "card": {
+        "w": 888,
+        "h": 104
+      },
+      "pre": {
+        "clientW": 888,
+        "scrollW": 1487,
+        "overflowX": "auto",
+        "h": 59
+      },
+      "bubble": null,
+      "header": {
+        "filename": "code.tsts",
+        "lang": "ts"
+      }
+    },
+    "msg-multi": {
+      "card": {
+        "w": 888,
+        "h": 104
+      },
+      "pre": {
+        "clientW": 888,
+        "scrollW": 888,
+        "overflowX": "auto",
+        "h": 59
+      },
+      "bubble": null,
+      "header": {
+        "filename": "code.jsonjson",
+        "lang": "json"
+      }
+    },
+    "taskrows": {
+      "card": {
+        "w": 440,
+        "h": 44
+      },
+      "pre": {
+        "clientW": 386,
+        "scrollW": 386,
+        "overflowX": "auto",
+        "h": 137
+      },
+      "bubble": null,
+      "header": {
+        "filename": "churn.tsts",
+        "lang": "ts"
+      }
+    },
+    "msg-ts-header-fit": {
+      "barClientW": 888,
+      "barScrollW": 888
+    },
+    "msg-multi-header-fit": {
+      "barClientW": 888,
+      "barScrollW": 888
+    },
+    "msg-plain-header-fit": {
+      "barClientW": 888,
+      "barScrollW": 888
+    },
+    "short-space": {
+      "preH": 40,
+      "contentBottom": 30
+    },
+    "long-chain": [
+      {
+        "tag": "PRE",
+        "overflowX": "auto",
+        "cls": "overflow-auto bg-inset px-3 py-2.5 font-mono text-"
+      },
+      {
+        "tag": "DIV",
+        "overflowX": "hidden",
+        "cls": "w-full overflow-hidden rounded-card bg-surface sha"
+      },
+      {
+        "tag": "SECTION",
+        "overflowX": "visible",
+        "cls": ""
+      },
+      {
+        "tag": "DIV",
+        "overflowX": "visible",
+        "cls": ""
+      },
+      {
+        "tag": "DIV",
+        "overflowX": "visible",
+        "cls": "css-dev-only-do-not-override-12q6fii ant-app css-v"
+      },
+      {
+        "tag": "DIV",
+        "overflowX": "visible",
+        "cls": ""
+      }
+    ],
+    "inline-code": {
+      "paddingTop": "1px",
+      "paddingBottom": "1px",
+      "bg": "rgb(31, 32, 34)"
+    },
+    "taskrows-pre": {
+      "cls": "overflow-auto bg-inset px-3 py-2.5 font-mono text-[11.5px] leading-[1.7] ",
+      "lineCount": 6,
+      "fontSize": "11.5px",
+      "lineHeight": "19.55px",
+      "paddingTop": "10px",
+      "paddingBottom": "10px",
+      "rowExpanded": "false",
+      "preRectH": 137
+    }
+  }
+}

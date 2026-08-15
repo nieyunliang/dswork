@@ -1,0 +1,132 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+
+  /* bui tokens.css references these; without them --default-font-family
+     and --default-mono-font-family become invalid */
+  --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system,
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono-face: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+}
+
+/* tokens.css removes focus outlines from form controls globally; restore a
+   visible accent ring for keyboard users (this file loads after tokens.css).
+   textarea is excluded: the PromptBar shows focus through its own border
+   token (focus-within:border-line-strong), matching the design-system demo. */
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Same for the custom sidebar buttons (session rows, kebab, collapse/expand,
+   section ⋯ menu, accent). The session rows get a moving highlight on focus,
+   but these controls otherwise have no focus indicator. */
+[data-sidebar] button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* tokens.css animates filter:blur in stream-in; replace with compositor-only
+   transform/opacity so streamed text stays smooth */
+@keyframes stream-in {
+  0% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Long chat sessions: offscreen message groups skip layout/paint work.
+   Gracefully no-ops on browsers without content-visibility support. */
+.chat-message-group {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+
+/* Salvaged from src/components/ui/ui.css (deleted with the ui library) —
+   these are used outside the old ui/ folder and not present in tokens.css */
+.h-screen {
+  height: 100vh;
+}
+.my-1 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+.text-center {
+  text-align: center;
+}
+.max-w-100 {
+  max-width: 25rem;
+}
+
+/* CodeBlock 使用体检补缺（2025）：tokens.css 快照早于以下类，
+   message 组件与 TaskRows 依赖它们，缺失会导致气泡全宽/代码卡被
+   压缩到文本宽度、行内 code 无垂直内边距、json 详情块无高度上限。 */
+.max-w-\[70\%\] {
+  max-width: 70%;
+}
+.py-px {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+.max-h-\[256px\] {
+  max-height: 256px;
+}
+
+/* tokens.css is a compiled snapshot taken before PromptBar gained its
+   no-dictation variants. The app renders with auto={false}, which applies
+   exactly the two grid templates below — missing from tokens.css — so
+   without these rules the composer's controls fall into auto-width
+   implicit columns instead of a 1fr input row. Also missing: the send
+   spinner's transparent top border, and py-4 (message list padding). */
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.pb-4 {
+  padding-bottom: 1rem;
+}
+.grid-cols-\[28px_minmax\(0\,1fr\)_auto_28px\] {
+  grid-template-columns: 28px minmax(0, 1fr) auto 28px;
+}
+.grid-cols-\[minmax\(0\,1fr\)_auto_28px\] {
+  grid-template-columns: minmax(0, 1fr) auto 28px;
+}
+.border-t-transparent {
+  border-top-color: transparent;
+}
+
