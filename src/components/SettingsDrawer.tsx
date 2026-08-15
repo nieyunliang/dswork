@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Refresh, Trash } from "iconoir-react";
+import { Download, Refresh, Trash } from "iconoir-react";
 import {
   Alert,
   App as AntdApp,
@@ -14,6 +14,7 @@ import {
 } from "antd";
 import { getVersion } from "@tauri-apps/api/app";
 import { useDeepSeekConfig } from "../hooks/useDeepSeekConfig";
+import { useUpdater } from "../hooks/useUpdater";
 import type { TestConnectionResult } from "../types";
 import {
   DEFAULT_DEEPSEEK_MODEL,
@@ -25,6 +26,8 @@ const { Text } = Typography;
 interface SettingsDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** 打开更新弹窗并触发检查 */
+  onCheckUpdates: () => void;
 }
 
 const statusLabel: Record<
@@ -40,10 +43,12 @@ const statusLabel: Record<
 export default function SettingsDrawer({
   open,
   onClose,
+  onCheckUpdates,
 }: SettingsDrawerProps) {
   const { modal } = AntdApp.useApp();
   const { config, saveConfig, testConnection, clearApiKey } =
     useDeepSeekConfig();
+  const { status: updaterStatus, updateInfo } = useUpdater();
 
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("https://api.deepseek.com");
@@ -289,8 +294,20 @@ export default function SettingsDrawer({
         <Divider />
 
         <Flex vertical gap={8}>
-          <Text strong>关于</Text>
+          <Text strong>关于与更新</Text>
           <Text type="secondary">当前版本 v{version || "-"}</Text>
+          <Flex gap={8} align="center">
+            <Button
+              icon={<Download width={13} height={13} strokeWidth={1.8} aria-hidden="true" />}
+              loading={updaterStatus === "checking"}
+              onClick={onCheckUpdates}
+            >
+              检查更新
+            </Button>
+            {updaterStatus === "available" && updateInfo && (
+              <Tag color="success">有新版本 v{updateInfo.version}</Tag>
+            )}
+          </Flex>
         </Flex>
       </Flex>
     </Drawer>
