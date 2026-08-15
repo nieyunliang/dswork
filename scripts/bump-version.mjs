@@ -8,7 +8,7 @@
  *   pnpm bump minor     # 0.1.0 -> 0.2.0
  *   pnpm bump major     # 0.1.0 -> 1.0.0
  *
- * 发布前先 bump，再推 tag（v<新版本>），CI 会自动构建发布。
+ * 打包前先 bump，再执行本地打包（scripts/build-macos.sh 会自动调用本脚本）。
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

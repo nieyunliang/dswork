@@ -25,8 +25,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
-    "createUpdaterArtifacts": true,
+    "targets": ["app", "dmg"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -34,16 +33,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE5MzQ1MzM0MTcxRTlGQ0UKUldUT254NFhORk0wcVlkQVg3ZEF0UldnWFlmcTltSU5KYngxOGNFQWlkMHBvQ1JVdWw5a2xaZW8K",
-      "endpoints": [
-        "https://github.com/nieyunliang/dswork/releases/latest/download/latest.json"
-      ],
-      "windows": {
-        "installMode": "passive"
-      }
-    }
   }
 }

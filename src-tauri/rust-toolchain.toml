@@ -1,7 +1,4 @@
-# 仓库级 Rust 工具链声明（GitHub Actions 与本地开发共用同一份配置）。
-#
-# GitHub 官方 macOS/Windows runner 镜像已预装 rustup + stable 工具链，
-# rustup 会自动读取本文件并复用匹配的预装工具链，CI 中无需再安装 Rust。
-# 如需固定版本，把 stable 换成具体版本号（如 "1.97"）。
+# 仓库级 Rust 工具链声明（本地开发统一使用 stable；如需固定版本，
+# 把 stable 换成具体版本号，如 "1.97"）。
 [toolchain]
 channel = "stable"
