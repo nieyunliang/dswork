@@ -4,6 +4,13 @@ name: Release
 # 产物：macOS (aarch64 + x86_64) 与 Windows (NSIS)
 # tauri-action 会自动生成 latest.json（更新清单）并上传，app 通过
 # https://github.com/nieyunliang/dswork/releases/latest/download/latest.json 检测更新
+#
+# 环境策略：不再逐次安装 Rust/Node —— GitHub 官方 macOS/Windows 镜像已预装
+# Node 22 与 Rust（rustup + stable）：
+#   - Rust 工具链由仓库文件 src-tauri/rust-toolchain.toml 声明，rustup 自动复用镜像预装版；
+#   - pnpm 版本由 package.json 的 packageManager 字段声明，pnpm/action-setup 自动读取；
+#   - Node 版本由 package.json 的 engines 字段约束（镜像自带 22.x 满足要求）。
+# 唯一需要补装的是 macOS 交叉编译的两个 Rust target（轻量下载）。
 on:
   push:
     tags:
@@ -34,15 +41,19 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Install Node.js
+        # 镜像自带 Node 22.x，此步骤仅在版本不匹配时做极小的增量下载；
+        # 同时负责 pnpm store 缓存（cache: pnpm）
         uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      # Rust 环境：macOS/Windows 镜像已预装 rustup + stable，
+      # rustup 按 src-tauri/rust-toolchain.toml 自动复用，无需安装工具链。
+      # macOS 交叉编译需补装目标架构 target（每次 ~30MB 轻量下载）。
+      - name: Add Rust cross-compile targets (macOS)
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
