@@ -46,6 +46,10 @@ struct StoredSession {
     /// 不因内存态丢失而静默回退（回退 = 一次全量缓存 miss）。
     #[serde(default)]
     active_skills: Vec<String>,
+    /// 会话工作目录（持久化）：工具执行与相对路径解析的基准；旧数据缺省为空串，
+    /// 迁移时统一填主目录（空串 = 未设置，见 ensure_cwd）。
+    #[serde(default)]
+    cwd: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -68,6 +72,8 @@ pub struct Session {
     /// 会话已激活的 skill 名（持久化），前端据此在切换/重启后恢复 system 前缀。
     #[serde(default)]
     active_skills: Vec<String>,
+    /// 会话工作目录（绝对路径）：工具执行与相对路径解析的基准。
+    cwd: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -125,6 +131,9 @@ fn state() -> &'static Mutex<StoredSessions> {
             }
         };
         let mut changed = ensure_message_ids(&mut stored);
+        if ensure_cwd(&mut stored) {
+            changed = true;
+        }
         if !stored.titled_migrated {
             // 旧数据:已有标题的视为「命名完成」,防止被自动命名覆盖
             for session in &mut stored.sessions {
@@ -153,6 +162,25 @@ fn ensure_message_ids(stored: &mut StoredSessions) -> bool {
                 message.id = format!("message_{}", crate::generate_id());
                 changed = true;
             }
+        }
+    }
+    changed
+}
+
+/// 工作目录迁移：旧数据没有 cwd 字段（反序列化为空串），统一填主目录。
+/// 空串 = 未设置（update_session_cwd 校验层不允许保存空路径），幂等可重入。
+fn ensure_cwd(stored: &mut StoredSessions) -> bool {
+    let home = dirs::home_dir()
+        .map(|h| h.to_string_lossy().to_string())
+        .unwrap_or_default();
+    if home.is_empty() {
+        return false;
+    }
+    let mut changed = false;
+    for session in &mut stored.sessions {
+        if session.cwd.is_empty() {
+            session.cwd = home.clone();
+            changed = true;
         }
     }
     changed
@@ -222,6 +250,7 @@ fn to_session(s: &StoredSession) -> Session {
         updated_at: s.updated_at,
         messages: s.messages.clone(),
         active_skills: s.active_skills.clone(),
+        cwd: s.cwd.clone(),
     }
 }
 
@@ -236,6 +265,9 @@ pub fn list_all_sessions() -> Result<Vec<SessionSummary>, String> {
 #[tauri::command]
 pub fn create_session() -> Result<Session, String> {
     let now = now_secs();
+    let cwd = dirs::home_dir()
+        .map(|h| h.to_string_lossy().to_string())
+        .ok_or_else(|| "无法获取用户目录".to_string())?;
     let session = StoredSession {
         id: crate::generate_id(),
         title: "新对话".into(),
@@ -244,6 +276,7 @@ pub fn create_session() -> Result<Session, String> {
         titled: false,
         messages: Vec::new(),
         active_skills: Vec::new(),
+        cwd,
     };
     state().lock().unwrap().sessions.push(session.clone());
     persist()?;
@@ -285,6 +318,46 @@ pub fn get_session(id: String) -> Result<Session, String> {
         .find(|s| s.id == id)
         .ok_or_else(|| format!("会话 {} 不存在", id))?;
     Ok(to_session(session))
+}
+
+/// 查询会话的工作目录（供 tasks::create_task 继承；会话不存在时返回 None）。
+pub(crate) fn get_session_cwd(id: &str) -> Option<String> {
+    let guard = state().lock().unwrap();
+    guard
+        .sessions
+        .iter()
+        .find(|s| s.id == id)
+        .map(|s| s.cwd.clone())
+}
+
+/// 更新会话工作目录：支持 `~` / `~/...` 展开；目录必须存在且为目录，否则报错。
+/// 不更新 updated_at——cwd 变更属于会话元数据，不应打乱侧栏按活动时间排序。
+#[tauri::command]
+pub fn update_session_cwd(id: String, cwd: String) -> Result<(), String> {
+    let cwd = cwd.trim();
+    if cwd.is_empty() {
+        return Err("工作目录不能为空".to_string());
+    }
+    let expanded = crate::expand_tilde(cwd);
+    if !expanded.exists() {
+        return Err(format!("目录不存在: {}", expanded.display()));
+    }
+    if !expanded.is_dir() {
+        return Err(format!("不是有效的目录: {}", expanded.display()));
+    }
+    let canonical = expanded
+        .canonicalize()
+        .map_err(|e| format!("解析目录失败: {}", e))?;
+    {
+        let mut guard = state().lock().unwrap();
+        let session = guard
+            .sessions
+            .iter_mut()
+            .find(|s| s.id == id)
+            .ok_or_else(|| format!("会话 {} 不存在", id))?;
+        session.cwd = canonical.to_string_lossy().to_string();
+    }
+    persist()
 }
 
 #[tauri::command]
@@ -486,6 +559,77 @@ mod tests {
             assert!(path.exists());
             let tmp = path.with_file_name("sessions.json.tmp");
             assert!(!tmp.exists());
+        });
+    }
+
+    #[test]
+    fn cwd_defaults_to_home_and_updates() {
+        with_temp_home(|| {
+            let home = dirs::home_dir().unwrap();
+
+            // 新会话默认工作目录 = 主目录
+            let s = create_session().unwrap();
+            assert_eq!(s.cwd, home.to_string_lossy().to_string());
+
+            // 更新为 `~` 写法 → 展开为主目录（canonical 后与 home 一致）
+            update_session_cwd(s.id.clone(), "~".into()).unwrap();
+            let got = get_session(s.id.clone()).unwrap();
+            assert_eq!(got.cwd, home.to_string_lossy().to_string());
+
+            // 更新为子目录（相对主目录 + `~` 展开）
+            let sub = home.join("subdir");
+            std::fs::create_dir_all(&sub).unwrap();
+            update_session_cwd(s.id.clone(), "~/subdir".into()).unwrap();
+            let got = get_session(s.id.clone()).unwrap();
+            assert_eq!(got.cwd, sub.to_string_lossy().to_string());
+
+            // 持久化回环：重新加载磁盘可见
+            let stored = load_from_disk().unwrap();
+            let stored_s = stored.sessions.iter().find(|x| x.id == s.id).unwrap();
+            assert_eq!(stored_s.cwd, sub.to_string_lossy().to_string());
+
+            // 非法路径被拒绝
+            let err = update_session_cwd(s.id.clone(), "~/不存在的目录xyz".into()).unwrap_err();
+            assert!(err.contains("目录不存在"), "unexpected: {}", err);
+
+            // 文件路径被拒绝
+            let f = home.join("afile.txt");
+            std::fs::write(&f, "x").unwrap();
+            let err = update_session_cwd(s.id.clone(), f.to_str().unwrap().into()).unwrap_err();
+            assert!(err.contains("不是有效的目录"), "unexpected: {}", err);
+        });
+    }
+
+    #[test]
+    fn cwd_legacy_records_migrate_to_home() {
+        with_temp_home(|| {
+            let home = dirs::home_dir().unwrap();
+            // 构造旧数据：cwd 字段缺失（反序列化为空串）
+            let mut stored = StoredSessions {
+                titled_migrated: false,
+                sessions: vec![StoredSession {
+                    id: "legacy-1".into(),
+                    title: "旧会话".into(),
+                    created_at: 1,
+                    updated_at: 1,
+                    titled: false,
+                    messages: Vec::new(),
+                    active_skills: Vec::new(),
+                    cwd: String::new(),
+                }],
+            };
+            // 空串会被填主目录
+            assert!(ensure_cwd(&mut stored));
+            assert_eq!(stored.sessions[0].cwd, home.to_string_lossy().to_string());
+            // 再次执行无变化（幂等）
+            assert!(!ensure_cwd(&mut stored));
+
+            // 真实旧 JSON（无 cwd 字段）反序列化 → 空串 → ensure_cwd 填主目录
+            let legacy_json = r#"{"titled_migrated":false,"sessions":[{"id":"legacy-2","title":"旧会话2","created_at":2,"updated_at":2,"titled":false,"messages":[],"active_skills":[]}]}"#;
+            let mut parsed: StoredSessions = serde_json::from_str(legacy_json).unwrap();
+            assert_eq!(parsed.sessions[0].cwd, "");
+            assert!(ensure_cwd(&mut parsed));
+            assert_eq!(parsed.sessions[0].cwd, home.to_string_lossy().to_string());
         });
     }
 }

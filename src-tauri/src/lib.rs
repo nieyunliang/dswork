@@ -17,6 +17,24 @@ pub(crate) fn dswork_dir() -> Result<PathBuf, String> {
     Ok(dir)
 }
 
+/// 把 `~` / `~/...`（Windows 上还支持 `~\...`）展开为用户主目录；其余路径原样返回。
+pub(crate) fn expand_tilde(path: &str) -> PathBuf {
+    let home = dirs::home_dir().unwrap_or_default();
+    if path == "~" {
+        return home;
+    }
+    if let Some(rest) = path
+        .strip_prefix("~/")
+        .or_else(|| path.strip_prefix("~\\"))
+    {
+        if rest.is_empty() {
+            return home;
+        }
+        return home.join(rest);
+    }
+    PathBuf::from(path)
+}
+
 /// Process-wide monotonic counter so ids generated in the same millisecond
 /// (e.g. two quick `create_session` calls) never collide.
 static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -62,6 +80,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             tools::init(app.handle());
@@ -82,6 +101,7 @@ pub fn run() {
             sessions::delete_session,
             sessions::rename_session,
             sessions::get_session,
+            sessions::update_session_cwd,
             sessions::save_session_messages,
             sessions::save_session_active_skills,
             sessions::auto_title_session,

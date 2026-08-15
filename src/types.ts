@@ -48,6 +48,9 @@ export interface ToolDef {
 export interface ExecuteToolInput {
   name: string;
   arguments: string;
+  /** 会话工作目录（随每次工具调用透传后端）：run_shell 在其下执行，
+      路径类工具的相对路径基于它解析；缺省时后端回退进程 cwd。 */
+  cwd?: string;
 }
 
 export interface ExecuteToolResult {
@@ -94,6 +97,8 @@ export interface Session extends SessionSummary {
   messages: ChatMessage[];
   /** 会话已激活的 skill 名（持久化）：切换会话/重启后恢复 system 前缀，避免缓存静默断裂 */
   activeSkills: string[];
+  /** 会话工作目录（绝对路径）：工具执行与相对路径解析的基准；新建会话默认 `~` */
+  cwd: string;
 }
 
 export interface ChatMessage {
@@ -185,6 +190,8 @@ export interface TaskRun {
   error?: string;
   /** 可选：关联的聊天会话 */
   sessionId?: string;
+  /** 任务工作目录：从关联会话继承，无会话时默认主目录（与聊天会话同语义） */
+  cwd?: string;
   createdAt: number;
   updatedAt: number;
 }

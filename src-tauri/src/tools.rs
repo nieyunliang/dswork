@@ -15,6 +15,10 @@ use tokio::sync::oneshot;
 pub struct ExecuteToolInput {
     pub name: String,
     pub arguments: String,
+    /// 会话工作目录（前端随每次工具调用透传）：run_shell 在该目录下执行，
+    /// 路径类工具的相对路径基于它解析；缺省时回退进程 cwd。
+    #[serde(default)]
+    pub cwd: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -24,7 +28,8 @@ pub struct ExecuteToolResult {
     pub is_error: bool,
 }
 
-type ToolFn = fn(serde_json::Value) -> Pin<Box<dyn Future<Output = ExecuteToolResult> + Send>>;
+type ToolFn =
+    fn(serde_json::Value, Option<String>) -> Pin<Box<dyn Future<Output = ExecuteToolResult> + Send>>;
 
 static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 static ASK_USER_TX: OnceLock<Mutex<Option<oneshot::Sender<String>>>> = OnceLock::new();
@@ -36,18 +41,20 @@ pub fn init(app_handle: &tauri::AppHandle) {
 
 fn registry() -> HashMap<&'static str, ToolFn> {
     let mut m: HashMap<&'static str, ToolFn> = HashMap::new();
-    m.insert("read_file", |args| Box::pin(read_file(args)));
-    m.insert("write_file", |args| Box::pin(write_file(args)));
-    m.insert("list_dir", |args| Box::pin(list_dir(args)));
-    m.insert("run_shell", |args| Box::pin(run_shell(args)));
-    m.insert("http_get", |args| Box::pin(http_get(args)));
-    m.insert("web_search", |args| Box::pin(web_search(args)));
-    m.insert("web_fetch", |args| Box::pin(web_fetch(args)));
-    m.insert("ask_user", |args| Box::pin(ask_user(args)));
-    m.insert("file_search", |args| Box::pin(file_search(args)));
-    m.insert("grep", |args| Box::pin(grep(args)));
-    m.insert("screenshot", |args| Box::pin(screenshot(args)));
-    m.insert("read_pdf_or_image", |args| Box::pin(read_pdf_or_image(args)));
+    m.insert("read_file", |args, cwd| Box::pin(read_file(args, cwd)));
+    m.insert("write_file", |args, cwd| Box::pin(write_file(args, cwd)));
+    m.insert("list_dir", |args, cwd| Box::pin(list_dir(args, cwd)));
+    m.insert("run_shell", |args, cwd| Box::pin(run_shell(args, cwd)));
+    m.insert("http_get", |args, _| Box::pin(http_get(args)));
+    m.insert("web_search", |args, _| Box::pin(web_search(args)));
+    m.insert("web_fetch", |args, _| Box::pin(web_fetch(args)));
+    m.insert("ask_user", |args, _| Box::pin(ask_user(args)));
+    m.insert("file_search", |args, cwd| Box::pin(file_search(args, cwd)));
+    m.insert("grep", |args, cwd| Box::pin(grep(args, cwd)));
+    m.insert("screenshot", |args, _| Box::pin(screenshot(args)));
+    m.insert("read_pdf_or_image", |args, cwd| {
+        Box::pin(read_pdf_or_image(args, cwd))
+    });
     m
 }
 
@@ -63,7 +70,7 @@ pub async fn execute_tool(input: ExecuteToolInput) -> ExecuteToolResult {
         }
     };
     match registry().get(input.name.as_str()) {
-        Some(f) => f(args).await,
+        Some(f) => f(args, input.cwd).await,
         None => ExecuteToolResult {
             output: format!("未知工具: {}", input.name),
             is_error: true,
@@ -84,7 +91,23 @@ pub async fn answer_user(answer: String) -> Result<(), String> {
     }
 }
 
-async fn read_file(args: serde_json::Value) -> ExecuteToolResult {
+/// 把工具参数里的路径解析为实际文件系统路径：
+/// 1) `~` / `~/...` 展开为主目录；2) 相对路径基于会话工作目录 cwd 拼接；
+/// 3) 其余原样返回。
+fn resolve_path(cwd: Option<&str>, path: &str) -> PathBuf {
+    let expanded = crate::expand_tilde(path);
+    match cwd {
+        Some(dir) if expanded.is_relative() => Path::new(dir).join(expanded),
+        _ => expanded,
+    }
+}
+
+/// 工具调用入参里取出的 cwd（已做 `~` 展开；无效时返回 None，回退进程 cwd）。
+fn tool_cwd(cwd: Option<&str>) -> Option<PathBuf> {
+    cwd.map(|c| crate::expand_tilde(c))
+}
+
+async fn read_file(args: serde_json::Value, cwd: Option<String>) -> ExecuteToolResult {
     let path = match args.get("path").and_then(|v| v.as_str()) {
         Some(p) => p,
         None => {
@@ -94,7 +117,8 @@ async fn read_file(args: serde_json::Value) -> ExecuteToolResult {
             };
         }
     };
-    match fs::read_to_string(path) {
+    let resolved = resolve_path(cwd.as_deref(), path);
+    match fs::read_to_string(&resolved) {
         Ok(content) => ExecuteToolResult {
             output: content,
             is_error: false,
@@ -106,7 +130,7 @@ async fn read_file(args: serde_json::Value) -> ExecuteToolResult {
     }
 }
 
-async fn write_file(args: serde_json::Value) -> ExecuteToolResult {
+async fn write_file(args: serde_json::Value, cwd: Option<String>) -> ExecuteToolResult {
     let path = match args.get("path").and_then(|v| v.as_str()) {
         Some(p) => p,
         None => {
@@ -125,7 +149,8 @@ async fn write_file(args: serde_json::Value) -> ExecuteToolResult {
             };
         }
     };
-    match fs::write(path, content) {
+    let resolved = resolve_path(cwd.as_deref(), path);
+    match fs::write(&resolved, content) {
         Ok(()) => ExecuteToolResult {
             output: "文件写入成功".into(),
             is_error: false,
@@ -137,7 +162,7 @@ async fn write_file(args: serde_json::Value) -> ExecuteToolResult {
     }
 }
 
-async fn list_dir(args: serde_json::Value) -> ExecuteToolResult {
+async fn list_dir(args: serde_json::Value, cwd: Option<String>) -> ExecuteToolResult {
     let path = match args.get("path").and_then(|v| v.as_str()) {
         Some(p) => p,
         None => {
@@ -147,7 +172,8 @@ async fn list_dir(args: serde_json::Value) -> ExecuteToolResult {
             };
         }
     };
-    match fs::read_dir(path) {
+    let resolved = resolve_path(cwd.as_deref(), path);
+    match fs::read_dir(&resolved) {
         Ok(entries) => {
             let names: Vec<String> = entries
                 .filter_map(|e| e.ok())
@@ -177,7 +203,7 @@ async fn list_dir(args: serde_json::Value) -> ExecuteToolResult {
     }
 }
 
-async fn run_shell(args: serde_json::Value) -> ExecuteToolResult {
+async fn run_shell(args: serde_json::Value, cwd: Option<String>) -> ExecuteToolResult {
     let command_str = match args.get("command").and_then(|v| v.as_str()) {
         Some(c) => c,
         None => {
@@ -199,12 +225,13 @@ async fn run_shell(args: serde_json::Value) -> ExecuteToolResult {
     };
     // tokio::process::Command：异步执行，不阻塞 tokio worker；
     // 任务场景常跑 pnpm test 这类长命令，同步 output() 会卡住整个运行时。
-    match tokio::process::Command::new(shell)
-        .arg(flag)
-        .arg(command_str)
-        .output()
-        .await
-    {
+    // current_dir：在会话工作目录下执行（cd 语义），缺省回退进程 cwd。
+    let mut cmd = tokio::process::Command::new(shell);
+    cmd.arg(flag).arg(command_str);
+    if let Some(dir) = tool_cwd(cwd.as_deref()) {
+        cmd.current_dir(dir);
+    }
+    match cmd.output().await {
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout).to_string();
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
@@ -496,7 +523,7 @@ fn collect_files_recursive(
     }
 }
 
-async fn file_search(args: serde_json::Value) -> ExecuteToolResult {
+async fn file_search(args: serde_json::Value, cwd: Option<String>) -> ExecuteToolResult {
     let path = match args.get("path").and_then(|v| v.as_str()) {
         Some(p) => p,
         None => {
@@ -526,20 +553,20 @@ async fn file_search(args: serde_json::Value) -> ExecuteToolResult {
         }
     };
 
-    let dir_path = Path::new(path);
+    let dir_path = resolve_path(cwd.as_deref(), path);
     if !dir_path.exists() {
         return ExecuteToolResult {
-            output: format!("路径不存在: {}", path),
+            output: format!("路径不存在: {}", dir_path.display()),
             is_error: true,
         };
     }
 
     let mut results = Vec::new();
     if dir_path.is_dir() {
-        collect_files_recursive(dir_path, &re, &mut results, 200, 0);
+        collect_files_recursive(&dir_path, &re, &mut results, 200, 0);
     } else if let Some(name) = dir_path.file_name().and_then(|n| n.to_str()) {
         if re.is_match(name) {
-            results.push(path.to_string());
+            results.push(dir_path.to_string_lossy().to_string());
         }
     }
 
@@ -563,7 +590,7 @@ async fn file_search(args: serde_json::Value) -> ExecuteToolResult {
     }
 }
 
-async fn grep(args: serde_json::Value) -> ExecuteToolResult {
+async fn grep(args: serde_json::Value, cwd: Option<String>) -> ExecuteToolResult {
     let path = match args.get("path").and_then(|v| v.as_str()) {
         Some(p) => p,
         None => {
@@ -593,10 +620,10 @@ async fn grep(args: serde_json::Value) -> ExecuteToolResult {
         }
     };
 
-    let dir_path = Path::new(path);
+    let dir_path = resolve_path(cwd.as_deref(), path);
     if !dir_path.exists() {
         return ExecuteToolResult {
-            output: format!("路径不存在: {}", path),
+            output: format!("路径不存在: {}", dir_path.display()),
             is_error: true,
         };
     }
@@ -712,7 +739,7 @@ async fn screenshot(args: serde_json::Value) -> ExecuteToolResult {
     }
 }
 
-async fn read_pdf_or_image(args: serde_json::Value) -> ExecuteToolResult {
+async fn read_pdf_or_image(args: serde_json::Value, cwd: Option<String>) -> ExecuteToolResult {
     let path = match args.get("path").and_then(|v| v.as_str()) {
         Some(p) => p,
         None => {
@@ -723,10 +750,10 @@ async fn read_pdf_or_image(args: serde_json::Value) -> ExecuteToolResult {
         }
     };
 
-    let file_path = Path::new(path);
+    let file_path = resolve_path(cwd.as_deref(), path);
     if !file_path.exists() {
         return ExecuteToolResult {
-            output: format!("文件不存在: {}", path),
+            output: format!("文件不存在: {}", file_path.display()),
             is_error: true,
         };
     }
@@ -739,17 +766,17 @@ async fn read_pdf_or_image(args: serde_json::Value) -> ExecuteToolResult {
 
     match ext.as_str() {
         "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "tiff" | "tif" | "ico" => {
-            match image::open(file_path) {
+            match image::open(&file_path) {
                 Ok(img) => {
                     let (w, h) = img.dimensions();
                     let color = format!("{:?}", img.color());
-                    let file_size = fs::metadata(file_path)
+                    let file_size = fs::metadata(&file_path)
                         .map(|m| m.len())
                         .unwrap_or(0);
                     ExecuteToolResult {
                         output: format!(
                             "格式: {}\n尺寸: {}x{}\n颜色: {:?}\n文件大小: {} 字节\n路径: {}",
-                            ext, w, h, color, file_size, path
+                            ext, w, h, color, file_size, file_path.display()
                         ),
                         is_error: false,
                     }
@@ -762,7 +789,7 @@ async fn read_pdf_or_image(args: serde_json::Value) -> ExecuteToolResult {
         }
         "pdf" => {
             let result = Command::new("pdftotext")
-                .args([path, "-"])
+                .args([file_path.to_str().unwrap_or_default(), "-"])
                 .output();
             match result {
                 Ok(out) if out.status.success() => {
@@ -782,13 +809,13 @@ async fn read_pdf_or_image(args: serde_json::Value) -> ExecuteToolResult {
                     }
                 }
                 _ => {
-                    let file_size = fs::metadata(file_path)
+                    let file_size = fs::metadata(&file_path)
                         .map(|m| m.len())
                         .unwrap_or(0);
                     ExecuteToolResult {
                         output: format!(
                             "PDF 文件 ({} 字节)\n路径: {}\n提示: 安装 poppler-utils 以启用文本提取 (macOS: brew install poppler)",
-                            file_size, path
+                            file_size, file_path.display()
                         ),
                         is_error: false,
                     }
@@ -796,7 +823,7 @@ async fn read_pdf_or_image(args: serde_json::Value) -> ExecuteToolResult {
             }
         }
         _ => {
-            let file_size = fs::metadata(file_path)
+            let file_size = fs::metadata(&file_path)
                 .map(|m| m.len())
                 .unwrap_or(0);
             ExecuteToolResult {
@@ -804,10 +831,106 @@ async fn read_pdf_or_image(args: serde_json::Value) -> ExecuteToolResult {
                     "二进制文件\n类型: {}\n大小: {} 字节\n路径: {}",
                     if ext.is_empty() { "未知" } else { &ext },
                     file_size,
-                    path
+                    file_path.display()
                 ),
                 is_error: false,
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn temp_dir(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "dswork-tools-test-{}-{}-{}",
+            tag,
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn resolve_path_relative_absolute_and_tilde() {
+        let cwd = "/work/project";
+        // 相对路径 → 基于 cwd 拼接
+        assert_eq!(
+            resolve_path(Some(cwd), "src/main.rs"),
+            std::path::Path::new(cwd).join("src/main.rs")
+        );
+        // 绝对路径 → 原样
+        assert_eq!(
+            resolve_path(Some(cwd), "/etc/hosts"),
+            std::path::PathBuf::from("/etc/hosts")
+        );
+        // 无 cwd → 相对路径保持相对（回退进程 cwd 语义）
+        assert_eq!(
+            resolve_path(None, "a/b.txt"),
+            std::path::PathBuf::from("a/b.txt")
+        );
+        // `~` 展开
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(resolve_path(None, "~"), home);
+        assert_eq!(resolve_path(Some(cwd), "~/x"), home.join("x"));
+        // `~` 展开优先于 cwd 拼接
+        assert_eq!(resolve_path(Some(cwd), "~/x"), home.join("x"));
+    }
+
+    #[tokio::test]
+    async fn run_shell_executes_in_cwd() {
+        let dir = temp_dir("shell");
+        let print_cwd = if cfg!(target_os = "windows") {
+            "cd"
+        } else {
+            "pwd"
+        };
+        let result = run_shell(json!({ "command": print_cwd }), Some(dir.to_str().unwrap().into()))
+            .await;
+        assert!(!result.is_error, "output: {}", result.output);
+        // pwd 返回的路径与传入 cwd 一致（macOS /tmp 是 /private/tmp 符号链接，用 canonical 比较）
+        let canonical = dir.canonicalize().unwrap();
+        assert_eq!(canonical.to_string_lossy().trim(), result.output.trim());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn path_tools_resolve_relative_against_cwd() {
+        let dir = temp_dir("paths");
+        std::fs::write(dir.join("hello.txt"), "你好，dswork").unwrap();
+
+        // 相对路径 + cwd → 命中
+        let r = read_file(json!({ "path": "hello.txt" }), Some(dir.to_str().unwrap().into())).await;
+        assert!(!r.is_error, "output: {}", r.output);
+        assert_eq!(r.output, "你好，dswork");
+
+        // 绝对路径不受 cwd 影响
+        let abs = dir.join("hello.txt").to_str().unwrap().to_string();
+        let r2 = read_file(json!({ "path": abs }), None).await;
+        assert!(!r2.is_error, "output: {}", r2.output);
+        assert_eq!(r2.output, "你好，dswork");
+
+        // 列表目录
+        let r3 = list_dir(json!({ "path": "." }), Some(dir.to_str().unwrap().into())).await;
+        assert!(!r3.is_error, "output: {}", r3.output);
+        assert!(r3.output.contains("hello.txt"), "output: {}", r3.output);
+
+        // write_file 相对路径写入 cwd
+        let w = write_file(
+            json!({ "path": "sub/out.txt", "content": "x" }),
+            Some(dir.to_str().unwrap().into()),
+        )
+        .await;
+        assert!(!w.is_error, "output: {}", w.output);
+        assert!(dir.join("sub/out.txt").exists());
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

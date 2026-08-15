@@ -9,11 +9,15 @@ interface SessionsContextType {
   messages: ChatMessage[];
   /** 当前会话已激活的 skill 名（持久化，切换/重启后恢复 system 前缀） */
   activeSkills: string[];
+  /** 当前会话工作目录（绝对路径）：工具执行与相对路径解析的基准 */
+  cwd: string;
   loading: boolean;
   createSession: () => Promise<string>;
   deleteSession: (id: string) => Promise<void>;
   renameSession: (id: string, name: string) => Promise<void>;
   switchSession: (id: string) => Promise<void>;
+  /** 更新会话工作目录（后端校验目录存在性），成功后同步本地状态 */
+  updateSessionCwd: (id: string, cwd: string) => Promise<void>;
   persistMessages: (sessionId: string, messages: ChatMessage[]) => Promise<void>;
   /** 持久化会话的活跃 skill 名（useChat 在 skill 激活/变更时调用） */
   saveActiveSkills: (sessionId: string, names: string[]) => Promise<void>;

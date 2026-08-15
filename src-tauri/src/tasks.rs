@@ -39,6 +39,10 @@ pub struct TaskRun {
     /// 可选：关联的聊天会话
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_id: Option<String>,
+    /// 任务工作目录：从关联会话继承，无会话时默认主目录；
+    /// 工具执行与相对路径解析的基准（与聊天会话同语义）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
     pub created_at: u64,
     pub updated_at: u64,
 }
@@ -187,6 +191,11 @@ pub fn create_task(goal: String, session_id: Option<String>) -> Result<TaskRun, 
     if goal.is_empty() {
         return Err("任务目标不能为空".to_string());
     }
+    // 工作目录：从关联会话继承；无会话（或会话已删）时默认主目录。
+    let cwd = session_id
+        .as_deref()
+        .and_then(crate::sessions::get_session_cwd)
+        .or_else(|| dirs::home_dir().map(|h| h.to_string_lossy().to_string()));
     let now = now_secs();
     let task = TaskRun {
         id: crate::generate_id(),
@@ -197,6 +206,7 @@ pub fn create_task(goal: String, session_id: Option<String>) -> Result<TaskRun, 
         result: None,
         error: None,
         session_id,
+        cwd,
         created_at: now,
         updated_at: now,
     };
