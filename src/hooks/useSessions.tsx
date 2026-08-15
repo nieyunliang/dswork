@@ -31,6 +31,7 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeSkills, setActiveSkills] = useState<string[]>([]);
+  const [cwd, setCwd] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   // 视图守卫用 ref 而非闭包值：后台回合（发送中切会话）结束时会用
@@ -55,10 +56,12 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
           const full = await invoke<Session>("get_session", { id: list[0].id });
           setMessages(full.messages);
           setActiveSkills(full.activeSkills ?? []);
+          setCwd(full.cwd ?? "");
         } else {
           const created = await invoke<Session>("create_session");
           setCurrentSessionId(created.id);
           setMessages([]);
+          setCwd(created.cwd ?? "");
           refreshList();
         }
       } catch (e) {
@@ -66,6 +69,7 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
         const created = await invoke<Session>("create_session");
         setCurrentSessionId(created.id);
         setMessages([]);
+        setCwd(created.cwd ?? "");
         refreshList();
       } finally {
         setLoading(false);
@@ -78,6 +82,7 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
     setCurrentSessionId(created.id);
     setMessages([]);
     setActiveSkills([]);
+    setCwd(created.cwd ?? "");
     refreshList();
     return created.id;
   }, [refreshList]);
@@ -91,11 +96,13 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
         const full = await invoke<Session>("get_session", { id: list[0].id });
         setMessages(full.messages);
         setActiveSkills(full.activeSkills ?? []);
+        setCwd(full.cwd ?? "");
       } else {
         const created = await invoke<Session>("create_session");
         setCurrentSessionId(created.id);
         setMessages([]);
         setActiveSkills([]);
+        setCwd(created.cwd ?? "");
         refreshList();
       }
     }
@@ -111,6 +118,16 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
     const full = await invoke<Session>("get_session", { id });
     setMessages(full.messages);
     setActiveSkills(full.activeSkills ?? []);
+    setCwd(full.cwd ?? "");
+  }, []);
+
+  const updateSessionCwd = useCallback(async (id: string, nextCwd: string) => {
+    await invoke("update_session_cwd", { id, cwd: nextCwd });
+    // 成功后重新拉取会话，拿到 canonical 绝对路径同步本地视图
+    if (id === currentSessionIdRef.current) {
+      const full = await invoke<Session>("get_session", { id });
+      setCwd(full.cwd ?? nextCwd);
+    }
   }, []);
 
   const persistMessages = useCallback(
@@ -156,11 +173,13 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
         currentSessionId,
         messages,
         activeSkills,
+        cwd,
         loading,
         createSession,
         deleteSession,
         renameSession,
         switchSession,
+        updateSessionCwd,
         persistMessages,
         saveActiveSkills,
         autoTitleSession,

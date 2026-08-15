@@ -292,7 +292,9 @@ mod tests {
     use super::*;
 
     /// 用临时 HOME 隔离 ~/.dswork，避免污染真实目录。
+    /// 持进程级 TEST_HOME_LOCK：HOME 是全局环境变量，与 sessions 测试并行 set_var 会互相污染。
     fn with_temp_home(f: impl FnOnce()) {
+        let _guard = crate::TEST_HOME_LOCK.lock().unwrap();
         let dir = std::env::temp_dir().join(format!(
             "dswork-tasks-test-{}-{}",
             std::process::id(),
@@ -308,10 +310,12 @@ mod tests {
     #[test]
     fn storage_smoke_and_startup_recovery() {
         with_temp_home(|| {
-            // create_task：空 steps、pending
+            // create_task：空 steps、pending；无会话时 cwd 默认主目录
             let t = create_task("测试任务".into(), None).unwrap();
             assert_eq!(t.status, "pending");
             assert!(t.steps.is_empty());
+            let home = dirs::home_dir().unwrap();
+            assert_eq!(t.cwd.as_deref(), Some(home.to_str().unwrap()));
 
             // update_task：幂等全量替换
             let mut t2 = get_task(t.id.clone()).unwrap();
@@ -361,6 +365,7 @@ mod tests {
                 result: None,
                 error: None,
                 session_id: None,
+                cwd: None,
                 created_at: 1,
                 updated_at: 1,
             };

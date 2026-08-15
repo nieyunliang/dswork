@@ -42,6 +42,8 @@ This is a Tauri v2 desktop app: a React/TypeScript frontend communicating with a
 
 **Streaming:** DeepSeek responses are streamed from Rust to the frontend via Tauri events (`tauri::Emitter`).
 
+**Working directory (cwd):** Each session carries a persisted working directory (default `~`, selectable in the chat header via `update_session_cwd`, browsed with `tauri-plugin-dialog`). The frontend pins the session cwd at turn start and passes it with every tool call (`ExecuteToolInput.cwd`) and as a trailing system message (`AgentLoopDeps.cwd`). Backend tools resolve relative paths against it (`resolve_path` in `tools.rs`) and `run_shell` sets `current_dir`. Tasks inherit the cwd of their source session (`TaskRun.cwd`, resolved in `create_task`).
+
 ## Key Constraints
 
 - TypeScript strict mode is on (`noUnusedLocals`, `noUnusedParameters`) — unused imports will fail the build.

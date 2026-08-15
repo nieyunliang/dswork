@@ -33,10 +33,12 @@ function AppContent() {
     sessions,
     currentSessionId,
     messages,
+    cwd,
     createSession,
     deleteSession,
     renameSession,
     switchSession,
+    updateSessionCwd,
   } = useSessions();
   const {
     send,
@@ -162,6 +164,8 @@ function AppContent() {
         <ChatHeader
           title={currentSessionTitle}
           cacheStats={sessionCacheStats}
+          cwd={cwd}
+          onChangeCwd={(next) => updateSessionCwd(currentSessionId!, next)}
           onOpenSettings={() => setShowSettings(true)}
           onOpenTasks={() => setShowTasks(true)}
           onOpenUpdates={() => setShowUpdates(true)}

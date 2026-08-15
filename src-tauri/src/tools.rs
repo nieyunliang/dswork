@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::future::Future;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::process::Command;
 use std::sync::{Mutex, OnceLock};
@@ -922,7 +922,8 @@ mod tests {
         assert!(!r3.is_error, "output: {}", r3.output);
         assert!(r3.output.contains("hello.txt"), "output: {}", r3.output);
 
-        // write_file 相对路径写入 cwd
+        // write_file 相对路径写入 cwd（write_file 不创建父目录，先建好）
+        std::fs::create_dir_all(dir.join("sub")).unwrap();
         let w = write_file(
             json!({ "path": "sub/out.txt", "content": "x" }),
             Some(dir.to_str().unwrap().into()),

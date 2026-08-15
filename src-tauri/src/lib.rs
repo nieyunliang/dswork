@@ -75,6 +75,11 @@ pub(crate) fn atomic_write_text(path: &Path, data: &str) -> Result<(), String> {
     }
 }
 
+/// 测试专用：串行化所有 set_var(HOME) 的测试（HOME 是进程全局环境变量，
+/// sessions/tasks 的 with_temp_home 并行运行时互相污染）。
+#[cfg(test)]
+pub(crate) static TEST_HOME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

@@ -48,6 +48,11 @@ export interface AgentLoopDeps {
       可选——任务循环不传则保持端点默认。 */
   reasoningLevel?: ReasoningLevel;
 
+  /** 会话工作目录：追加到 system 消息末尾告知模型（相对路径与 shell 命令的基准）。
+       置于末尾而非前缀——base 引导与已激活 skill 保持跨会话共享，仅尾部差异；
+       cwd 变更会使该会话下一次请求整段缓存 miss（语义上必须，属预期）。 */
+  cwd?: string;
+
   /** 长上下文压缩（聊天注入 maybeCompact；任务可注入或不提供） */
   compact?: (messages: ChatMessage[]) => Promise<ChatMessage[] | null>;
 
@@ -202,6 +207,14 @@ export async function runAgentLoop(
         [...deps.activeSkills.values()],
         deps.baseSystemPrompt,
       );
+      // 工作目录告知模型：置于 system 块末尾，只影响尾部字节（见 deps.cwd 注释）
+      if (deps.cwd) {
+        systemMsgs.push({
+          id: crypto.randomUUID(),
+          role: "system",
+          content: `当前工作目录：${deps.cwd}。相对路径与 shell 命令均在该目录下执行。`,
+        });
+      }
       // API 边界：tool 消息超长输出确定性截断（持久化保留全文，见 prepareApiMessages）
       const apiMessages = [...systemMsgs, ...prepareApiMessages(messages)];
       const toolsForApi = selectTools([...deps.activeSkills.values()], deps.tools);

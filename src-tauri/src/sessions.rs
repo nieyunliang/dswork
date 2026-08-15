@@ -474,7 +474,9 @@ mod tests {
     use super::*;
 
     /// 用临时 HOME 隔离 ~/.dswork，避免污染真实目录。
+    /// 持进程级 TEST_HOME_LOCK：HOME 是全局环境变量，与 tasks 测试并行 set_var 会互相污染。
     fn with_temp_home(f: impl FnOnce()) {
+        let _guard = crate::TEST_HOME_LOCK.lock().unwrap();
         let dir = std::env::temp_dir().join(format!(
             "dswork-sessions-test-{}-{}",
             std::process::id(),
@@ -532,6 +534,48 @@ mod tests {
             rename_session(s.id.clone(), "缓存体检".into()).unwrap();
             assert_eq!(get_session(s.id.clone()).unwrap().title, "缓存体检");
 
+            // ── 工作目录（cwd）──
+            let home = dirs::home_dir().unwrap();
+            // 新会话默认工作目录 = 主目录（未解析）
+            assert_eq!(s.cwd, home.to_string_lossy().to_string());
+            // update 会 canonicalize（macOS 上 /var → /private/var），期望值同样解析
+            let home_canon = home.canonicalize().unwrap();
+            // `~` 写法 → 展开为主目录
+            update_session_cwd(s.id.clone(), "~".into()).unwrap();
+            let got = get_session(s.id.clone()).unwrap();
+            assert_eq!(got.cwd, home_canon.to_string_lossy().to_string());
+            // 子目录 + `~` 展开
+            let sub = home.join("subdir");
+            std::fs::create_dir_all(&sub).unwrap();
+            update_session_cwd(s.id.clone(), "~/subdir".into()).unwrap();
+            let got = get_session(s.id.clone()).unwrap();
+            assert_eq!(
+                got.cwd,
+                sub.canonicalize().unwrap().to_string_lossy().to_string()
+            );
+            // 持久化回环：重新加载磁盘可见
+            let stored_disk = load_from_disk().unwrap();
+            let stored_s = stored_disk.sessions.iter().find(|x| x.id == s.id).unwrap();
+            assert_eq!(
+                stored_s.cwd,
+                sub.canonicalize().unwrap().to_string_lossy().to_string()
+            );
+            // 非法路径 / 文件路径被拒绝
+            let err = update_session_cwd(s.id.clone(), "~/不存在的目录xyz".into()).unwrap_err();
+            assert!(err.contains("目录不存在"), "unexpected: {}", err);
+            let f = home.join("afile.txt");
+            std::fs::write(&f, "x").unwrap();
+            let err = update_session_cwd(s.id.clone(), f.to_str().unwrap().into()).unwrap_err();
+            assert!(err.contains("不是有效的目录"), "unexpected: {}", err);
+            // 任务继承会话 cwd（get_session_cwd → create_task 回填）
+            let task = crate::tasks::create_task("继承 cwd".into(), Some(s.id.clone())).unwrap();
+            assert_eq!(
+                task.cwd.as_deref(),
+                Some(sub.canonicalize().unwrap().to_str().unwrap())
+            );
+            // 清理：tasks 内存 map 是进程级共享的，不留残留（tasks 测试会断言列表长度）
+            crate::tasks::delete_task(task.id.clone()).unwrap();
+
             // active_skills 持久化：保存 → 读取回环；未设置时默认为空
             assert!(get_session(s.id.clone()).unwrap().active_skills.is_empty());
             save_session_active_skills(s.id.clone(), vec!["code".into(), "explain".into()])
@@ -562,44 +606,7 @@ mod tests {
         });
     }
 
-    #[test]
-    fn cwd_defaults_to_home_and_updates() {
-        with_temp_home(|| {
-            let home = dirs::home_dir().unwrap();
-
-            // 新会话默认工作目录 = 主目录
-            let s = create_session().unwrap();
-            assert_eq!(s.cwd, home.to_string_lossy().to_string());
-
-            // 更新为 `~` 写法 → 展开为主目录（canonical 后与 home 一致）
-            update_session_cwd(s.id.clone(), "~".into()).unwrap();
-            let got = get_session(s.id.clone()).unwrap();
-            assert_eq!(got.cwd, home.to_string_lossy().to_string());
-
-            // 更新为子目录（相对主目录 + `~` 展开）
-            let sub = home.join("subdir");
-            std::fs::create_dir_all(&sub).unwrap();
-            update_session_cwd(s.id.clone(), "~/subdir".into()).unwrap();
-            let got = get_session(s.id.clone()).unwrap();
-            assert_eq!(got.cwd, sub.to_string_lossy().to_string());
-
-            // 持久化回环：重新加载磁盘可见
-            let stored = load_from_disk().unwrap();
-            let stored_s = stored.sessions.iter().find(|x| x.id == s.id).unwrap();
-            assert_eq!(stored_s.cwd, sub.to_string_lossy().to_string());
-
-            // 非法路径被拒绝
-            let err = update_session_cwd(s.id.clone(), "~/不存在的目录xyz".into()).unwrap_err();
-            assert!(err.contains("目录不存在"), "unexpected: {}", err);
-
-            // 文件路径被拒绝
-            let f = home.join("afile.txt");
-            std::fs::write(&f, "x").unwrap();
-            let err = update_session_cwd(s.id.clone(), f.to_str().unwrap().into()).unwrap_err();
-            assert!(err.contains("不是有效的目录"), "unexpected: {}", err);
-        });
-    }
-
+    /// 纯函数测试（不依赖 state() 的 OnceLock，可与其它测试并行）。
     #[test]
     fn cwd_legacy_records_migrate_to_home() {
         with_temp_home(|| {

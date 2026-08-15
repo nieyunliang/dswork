@@ -1,9 +1,11 @@
-import { CheckSquare, Computer, Download, HalfMoon, Settings, SunLight } from "iconoir-react";
+import { useState } from "react";
+import { CheckSquare, Computer, Download, Folder, HalfMoon, Settings, SunLight } from "iconoir-react";
 import { Button, Flex, Tooltip, Typography } from "antd";
 import { useTheme } from "../hooks/useTheme";
 import { useUpdater } from "../hooks/useUpdater";
 import type { ThemeMode } from "../hooks/useTheme";
 import { formatTokens } from "./bui/CacheStatsBadge";
+import CwdModal from "./CwdModal";
 
 const { Text } = Typography;
 
@@ -23,6 +25,10 @@ interface ChatHeaderProps {
   title?: string;
   /** 会话级缓存统计汇总；无数据（如旧会话）时为 null，不渲染 chip */
   cacheStats?: SessionCacheStats | null;
+  /** 当前会话工作目录（点击 chip 可修改） */
+  cwd?: string;
+  /** 修改会话工作目录（后端校验；失败时抛出，由弹窗提示） */
+  onChangeCwd?: (cwd: string) => Promise<void>;
   onOpenSettings: () => void;
   onOpenTasks: () => void;
   /** 打开更新弹窗（badge 或按钮触发） */
@@ -51,12 +57,15 @@ const modeLabel: Record<ThemeMode, string> = {
 export default function ChatHeader({
   title,
   cacheStats,
+  cwd,
+  onChangeCwd,
   onOpenSettings,
   onOpenTasks,
   onOpenUpdates,
 }: ChatHeaderProps) {
   const { mode, cycleMode } = useTheme();
   const { status: updaterStatus, updateInfo } = useUpdater();
+  const [showCwdModal, setShowCwdModal] = useState(false);
 
   const statsNode = (() => {
     if (!cacheStats) return null;
@@ -109,9 +118,30 @@ export default function ChatHeader({
     <div
       className="flex min-h-12 items-center justify-between border-b border-line bg-surface px-6 py-2"
     >
-      <Text strong ellipsis style={{ fontSize: 16, flex: 1, minWidth: 0 }}>
-        {title ?? "dswork"}
-      </Text>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <Text strong ellipsis style={{ fontSize: 16, minWidth: 0, flexShrink: 1 }}>
+          {title ?? "dswork"}
+        </Text>
+        {cwd && (
+          <Tooltip title={`工作目录：${cwd}（点击修改）`}>
+            <Button
+              type="text"
+              size="small"
+              icon={<Folder width={12} height={12} strokeWidth={2} aria-hidden="true" />}
+              aria-label={`设置工作目录，当前 ${cwd}`}
+              onClick={() => setShowCwdModal(true)}
+              style={{ maxWidth: 280, paddingInline: 8 }}
+            >
+              <span
+                className="block overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-ink-3"
+                dir="ltr"
+              >
+                {cwd}
+              </span>
+            </Button>
+          </Tooltip>
+        )}
+      </div>
 
       <Flex gap={12} align="center">
         {statsNode}
@@ -150,6 +180,13 @@ export default function ChatHeader({
           onClick={onOpenSettings}
         />
       </Flex>
+
+      <CwdModal
+        open={showCwdModal}
+        cwd={cwd ?? ""}
+        onClose={() => setShowCwdModal(false)}
+        onSave={onChangeCwd ?? (async () => {})}
+      />
     </div>
   );
 }

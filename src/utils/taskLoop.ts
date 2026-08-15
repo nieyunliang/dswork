@@ -137,6 +137,14 @@ export async function runTaskLoop(
     return;
   }
 
+  // 任务工作目录：注入工具执行（ExecuteToolInput.cwd）与 system 消息（AgentLoopDeps.cwd）。
+  // 任务创建时已从会话继承（无会话默认主目录），持久化在 TaskRun.cwd。
+  const executeToolWithCwd: AgentLoopDeps["executeTool"] = (input) =>
+    deps.executeTool({ ...input, cwd: task.cwd ?? undefined });
+  const taskCwd = task.cwd ?? undefined;
+  baseDeps.executeTool = executeToolWithCwd;
+  baseDeps.cwd = taskCwd;
+
   try {
     // ── 阶段 1：规划（跳过 when retry） ──
     if (opts.fromStep == null) {

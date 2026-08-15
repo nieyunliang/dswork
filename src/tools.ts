@@ -5,11 +5,11 @@ export const TOOLS: ToolDef[] = [
     type: "function",
     function: {
       name: "read_file",
-      description: "读取文件内容",
+      description: "读取文件内容（相对路径基于当前会话工作目录解析）",
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "文件路径" },
+          path: { type: "string", description: "文件路径（绝对路径或相对于工作目录的路径）" },
         },
         required: ["path"],
       },
@@ -19,11 +19,11 @@ export const TOOLS: ToolDef[] = [
     type: "function",
     function: {
       name: "write_file",
-      description: "写入文件内容",
+      description: "写入文件内容（相对路径基于当前会话工作目录解析；不自动创建父目录）",
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "文件路径" },
+          path: { type: "string", description: "文件路径（绝对路径或相对于工作目录的路径）" },
           content: { type: "string", description: "文件内容" },
         },
         required: ["path", "content"],
@@ -34,11 +34,11 @@ export const TOOLS: ToolDef[] = [
     type: "function",
     function: {
       name: "list_dir",
-      description: "列出目录内容",
+      description: "列出目录内容（相对路径基于当前会话工作目录解析）",
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "目录路径" },
+          path: { type: "string", description: "目录路径（绝对路径或相对于工作目录的路径）" },
         },
         required: ["path"],
       },
@@ -48,7 +48,7 @@ export const TOOLS: ToolDef[] = [
     type: "function",
     function: {
       name: "run_shell",
-      description: "执行 Shell 命令",
+      description: "执行 Shell 命令（在当前会话工作目录下运行）",
       parameters: {
         type: "object",
         properties: {
@@ -118,11 +118,11 @@ export const TOOLS: ToolDef[] = [
     type: "function",
     function: {
       name: "file_search",
-      description: "按文件名模式搜索文件",
+      description: "按文件名模式搜索文件（相对路径基于当前会话工作目录解析）",
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "搜索目录路径" },
+          path: { type: "string", description: "搜索目录路径（绝对路径或相对于工作目录的路径）" },
           pattern: { type: "string", description: "文件名正则表达式" },
         },
         required: ["path", "pattern"],
@@ -133,11 +133,11 @@ export const TOOLS: ToolDef[] = [
     type: "function",
     function: {
       name: "grep",
-      description: "搜索文件内容",
+      description: "搜索文件内容（相对路径基于当前会话工作目录解析）",
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "搜索目录路径" },
+          path: { type: "string", description: "搜索目录路径（绝对路径或相对于工作目录的路径）" },
           pattern: { type: "string", description: "搜索内容的正则表达式" },
         },
         required: ["path", "pattern"],
@@ -160,11 +160,11 @@ export const TOOLS: ToolDef[] = [
     type: "function",
     function: {
       name: "read_pdf_or_image",
-      description: "读取 PDF 或图片文件内容",
+      description: "读取 PDF 或图片文件内容（相对路径基于当前会话工作目录解析）",
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "文件路径" },
+          path: { type: "string", description: "文件路径（绝对路径或相对于工作目录的路径）" },
         },
         required: ["path"],
       },

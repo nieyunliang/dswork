@@ -41,6 +41,7 @@ export function useChat() {
     messages,
     currentSessionId,
     activeSkills,
+    cwd,
     persistMessages,
     saveActiveSkills,
     autoTitleSession,
@@ -67,6 +68,10 @@ export function useChat() {
   const streamSessionRef = useRef<string | null>(null);
   const currentSessionRef = useRef(currentSessionId);
   currentSessionRef.current = currentSessionId;
+  // 当前会话工作目录的 ref 镜像：send 开始时钉住（与 sessionId 同理，
+  // 中途切会话/改目录不影响已钉住回合的工具执行基准）。
+  const currentCwdRef = useRef(cwd);
+  currentCwdRef.current = cwd;
 
   // 会话切换 / 首次挂载：恢复该会话持久化的活跃 skill。
   // 原实现是切走即清空（内存态），切回后 system 前缀回退到「无 skill」版本，
@@ -151,6 +156,8 @@ export function useChat() {
 
     const turn = ++turnRef.current;
     streamSessionRef.current = sessionId;
+    // 钉住回合的工作目录：中途切会话/改目录不影响已开始回合的工具执行基准
+    const turnCwd = currentCwdRef.current;
 
     // Parse /skill-name prefix（用户手动快捷方式，与模型动态加载走同一激活路径）
     const { name: skillName, rest } = parseSkillCommand(text);
@@ -182,12 +189,13 @@ export function useChat() {
     try {
       await runAgentLoop(initialMessages, {
         complete: sendChatCompletion,
-        executeTool: executeToolCall,
+        executeTool: (input) => executeToolCall({ ...input, cwd: turnCwd }),
         getSkill,
         availableSkills: skills,
         tools: TOOLS,
         activeSkills: activeSkillsRef.current,
         reasoningLevel,
+        cwd: turnCwd,
         compact: maybeCompact,
         // 持久化：与现状一致——后台会话也要落盘，不做 isLatest 守卫
         onPersist: (msgs) => persistMessages(sessionId, msgs),
