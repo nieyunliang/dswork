@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "tauri": "tauri build",
     "tauri:dev": "tauri dev",
-    "bump": "node scripts/bump-version.mjs"
+    "bump": "node scripts/bump-version.mjs",
+    "release": "bash scripts/release.sh"
   },
   "packageManager": "pnpm@10.33.2",
   "pnpm": {

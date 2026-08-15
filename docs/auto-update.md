@@ -11,15 +11,11 @@ app 启动后静默检查、每 4 小时自动复查、设置中可手动检查�
 ## 发布新版本（唯一流程）
 
 ```bash
-# 1. 同步版本号（package.json / Cargo.toml / tauri.conf.json 三处）
-pnpm bump 0.2.0          # 或 pnpm bump patch | minor | major
-
-# 2. 提交并推送
-git add -A && git commit -m "release v0.2.0"
-git push origin main
-
-# 3. 打 tag 触发 CI（.github/workflows/release.yml）
-git tag v0.2.0 && git push origin v0.2.0
+# 一键发布：同步版本号 → 提交 → 推送 → 打 tag → 推送 tag（触发 CI）
+pnpm release 0.2.0        # 或 pnpm release patch | minor | major
+# 等价于手动执行：
+#   pnpm bump 0.2.0 && git add -A && git commit -m "release v0.2.0"
+#   git push origin main && git tag v0.2.0 && git push origin v0.2.0
 ```
 
 CI 会在 macOS（arm64 + x86_64）与 Windows 上构建签名产物，并创建 **draft** Release：
